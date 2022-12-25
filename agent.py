@@ -5,6 +5,7 @@ from collections import deque
 
 from game import SnakeAI, Direction, Point
 from model import LinearQNet, QTrainer
+from helper import plot
 
 MAX_MEM = 100_000
 BATCH_SIZE = 1000
@@ -13,14 +14,16 @@ LR = 0.001
 
 class Agent:
     def __init__(self) -> None:
-        self.no_games = 0
-        self.epsilon = 0
-        self.gamma = 0.8
+        self.no_games = 0  # number of games played
+        self.epsilon = 0  # randomness
+        self.gamma = 0.8  # discount rate
 
+        # if maxlen is reached, oldest elements are removed
         self.memory = deque(maxlen=MAX_MEM)
 
+        # 11 inputs, 512 neurons, 3 outputs
         self.model = LinearQNet(11, 512, 3)
-        self.train = QTrainer(self.model, LR, self.gamma)
+        self.train = QTrainer(self.model, LR, self.gamma)  # LR = learning rate
 
     def get_state(self, game: SnakeAI) -> np.ndarray:
         head = game.snake[0]
@@ -80,7 +83,7 @@ class Agent:
             move_index = random.randint(0, 2)
             fmove[move_index] = 1
         else:
-            _state = torch.tensor(state)
+            _state = torch.tensor(state, dtype=torch.float)
             prediction = self.model(_state)
             move = torch.argmax(prediction).item()
             fmove[move] = 1
@@ -93,7 +96,9 @@ class Agent:
         else:
             sample = self.memory
 
-        self.train.train_step(*sample)
+        # unpack
+        states, actions, rewards, next_states, status = zip(*sample)
+        self.train.train_step(states, actions, rewards, next_states, status)
 
     def train_short_memory(self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray, status: bool) -> None:
         self.train.train_step(state, action, reward, next_state, status)
@@ -137,6 +142,13 @@ def train():
             print(
                 f"Game: {agent.no_games} | Score: {score} | Record: {record}"
             )
+
+            # plot
+            plot_scores.append(score)
+            total += score
+            mean_score = total / agent.no_games
+            plot_mean_scores.append(mean_score)
+            plot(plot_scores, plot_mean_scores)
 
 
 if __name__ == "__main__":

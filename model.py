@@ -3,6 +3,7 @@ import torch.nn as nn  # Contains neural network modules
 import torch.optim as optim  # Contains optimizers such as SGD and Adam
 import torch.nn.functional as F  # Contains activation functions
 import os
+import numpy as np
 
 
 class LinearQNet(nn.Module):  # Inherit from nn.Module
@@ -14,7 +15,7 @@ class LinearQNet(nn.Module):  # Inherit from nn.Module
     # Forward pass
     def forward(self, x) -> torch.Tensor:
         x = F.relu(self.lin1(x))
-        return F.relu(self.lin2(x))
+        return self.lin2(x)
 
     # Save model parameters to file
     def save(self, file_name='model.pth') -> None:
@@ -39,8 +40,8 @@ class QTrainer:
 
     def train_step(self, state, action, reward, next_state, status) -> None:
         # Convert to tensors
-        state = torch.tensor(state, dtype=torch.float)
-        next_state = torch.tensor(next_state, dtype=torch.float)
+        state = torch.tensor(np.array(state), dtype=torch.float)
+        next_state = torch.tensor(np.array(next_state), dtype=torch.float)
         action = torch.tensor(action, dtype=torch.long)
         reward = torch.tensor(reward, dtype=torch.float)
 
@@ -61,13 +62,16 @@ class QTrainer:
         # Q_new = r + y * max(Q(s', a'))
         target = prediction.clone()  # Clone the tensor
 
+        # Iterate over the batch
         for index in range(len(status)):
             Q_new = reward[index]
 
+            # If the game is not over
             if not status[index]:
+                # Calculate the Q value
                 Q_new = reward[index] + self.gamma * \
                     torch.max(self.model(next_state[index]))
-
+            # Update the Q value for the action we took
             target[index][torch.argmax(action).item()] = Q_new
 
         # Calculate loss

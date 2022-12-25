@@ -1,10 +1,10 @@
 import pygame
 import random
 from enum import Enum
-from collections import namedtuple
+from collections import namedtuple  # tuple with named fields
 import numpy as np
 
-pygame.init()
+pygame.init()  # initialize pygame
 font = pygame.font.Font('arial.ttf', 25)
 
 
@@ -25,7 +25,7 @@ DGREEN = (3, 82, 48)
 BLACK = (0, 0, 0)
 
 BLOCK_SIZE = 20
-SPEED = 20*20
+SPEED = 40
 
 
 class SnakeAI:
@@ -35,11 +35,12 @@ class SnakeAI:
         self.h = h
 
         # init display
-        self.display = pygame.display.set_mode((self.w, self.h))
+        self.display = pygame.display.set_mode(
+            (self.w, self.h))  # set display size
         pygame.display.set_caption('Snake')
-        self.clock = pygame.time.Clock()
+        self.clock = pygame.time.Clock()  # set game speed
 
-        self.reset()
+        self.reset()  # init game state
 
     def reset(self):
         # init state
@@ -58,12 +59,13 @@ class SnakeAI:
         self.frame_iteration = 0
 
     def _place_food(self):
+        # place food on the screen randomly
         x = random.randint(0, (self.w-BLOCK_SIZE)//BLOCK_SIZE)*BLOCK_SIZE
-
         y = random.randint(0, (self.h-BLOCK_SIZE)//BLOCK_SIZE)*BLOCK_SIZE
 
         self.food = Point(x, y)
 
+        # check if food is on the snake
         if self.food in self.snake:
             self._place_food()
 
@@ -85,6 +87,7 @@ class SnakeAI:
         reward = 0
         game_over = False
 
+        # check if game over
         if self.is_collision() or self.frame_iteration > 100*len(self.snake):
             reward = -10
             game_over = True
@@ -149,18 +152,22 @@ class SnakeAI:
             Direction.UP
         ]
 
+        # convert to clockwise
         idx = clock_wise.index(self.direction)
 
+        # get new direction
         if np.array_equal(action, [1, 0, 0]):
-            new_direction = clock_wise[idx]  # no change
+            new_direction = clock_wise[idx]
 
+        # right turn
         elif np.array_equal(action, [0, 1, 0]):
             next_idx = (idx + 1) % 4
-            new_direction = clock_wise[next_idx]  # right turn
+            new_direction = clock_wise[next_idx]
 
+        # left turn
         else:
             next_idx = (idx - 1) % 4
-            new_direction = clock_wise[next_idx]  # left turn
+            new_direction = clock_wise[next_idx]
 
         self.direction = new_direction
 
