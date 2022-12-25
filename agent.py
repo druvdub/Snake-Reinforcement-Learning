@@ -4,6 +4,7 @@ import numpy as np
 from collections import deque
 
 from game import SnakeAI, Direction, Point
+from model import LinearQNet, QTrainer
 
 MAX_MEM = 100_000
 BATCH_SIZE = 1000
@@ -14,12 +15,12 @@ class Agent:
     def __init__(self) -> None:
         self.no_games = 0
         self.epsilon = 0
-        self.gamma = 0
+        self.gamma = 0.8
 
         self.memory = deque(maxlen=MAX_MEM)
 
-        self.model = None
-        self.train = None
+        self.model = LinearQNet(11, 512, 3)
+        self.train = QTrainer(self.model, LR, self.gamma)
 
     def get_state(self, game: SnakeAI) -> np.ndarray:
         head = game.snake[0]
@@ -80,7 +81,7 @@ class Agent:
             fmove[move_index] = 1
         else:
             _state = torch.tensor(state)
-            prediction = self.model.predict(_state)
+            prediction = self.model(_state)
             move = torch.argmax(prediction).item()
             fmove[move] = 1
 
@@ -92,7 +93,7 @@ class Agent:
         else:
             sample = self.memory
 
-        self.train.train_step(sample)
+        self.train.train_step(*sample)
 
     def train_short_memory(self, state: np.ndarray, action: int, reward: float, next_state: np.ndarray, status: bool) -> None:
         self.train.train_step(state, action, reward, next_state, status)
